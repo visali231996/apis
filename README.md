@@ -1,1 +1,1 @@
-![alt text](image.png)
+![alt text](image.png)GO RU![alt text](<Screenshot 2025-09-11 002823.png>)
