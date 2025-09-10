@@ -3,8 +3,11 @@ package api
 import (
 	"database/sql"
 	"net/http"
+
+	"github.com/IBM/sarama"
 )
 
-func Registerroute(db *sql.DB) {
-	http.HandleFunc("/create", CreateHandler(db))
+func RegisterRoutes(db *sql.DB, producer sarama.SyncProducer) {
+	h := NewHandler(db, producer)
+	http.HandleFunc("/create", h.CreateHandler())
 }

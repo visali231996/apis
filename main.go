@@ -1,14 +1,19 @@
 package main
 
 import (
+	"APIS/api"
 	"database/sql"
 	"log"
 	"net/http"
+
+	"github.com/IBM/sarama"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
-	dsn := "username:password@tcp(localhost)dbname?parseTime=True" //db file info
-	db, err := sql.Open("msql", dsn)                               //prepares the drivers and validate if dsn parameters are correct
+	dsn := "root:Visali@23@tcp(127.0.0.1:3306)/library_db?parseTime=True" //db file info
+	db, err := sql.Open("mysql", dsn)                                     //prepares the drivers and validate if dsn parameters are correct
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -18,12 +23,33 @@ func main() {
 		log.Fatal(err)
 	}
 
-	api.Registerroute(db)
+	producer, err := initKafkaProducer()
+	if err != nil {
+		log.Fatalf("Error creating Kafka producer: %v", err)
+	}
+	defer producer.Close()
 
-	//http server
-	log.Println("server starting on port 9090.......")
-	log.Fatal(http.ListenAndServe(".9090", nil))
+	api.RegisterRoutes(db, producer)
 
+	//Start the HTTP server
+	log.Println("Server starting on port 9090...")
+	log.Fatal(http.ListenAndServe(":9090", nil))
+}
+
+func initKafkaProducer() (sarama.SyncProducer, error) {
+	brokerList := []string{"localhost:9092"}
+
+	config := sarama.NewConfig()
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Retry.Max = 5
+	config.Producer.Return.Successes = true
+
+	producer, err := sarama.NewSyncProducer(brokerList, config)
+	if err != nil {
+		return nil, err
+	}
+
+	return producer, nil
 }
 
 //command to check which ports are listening windows: netstat -aon
